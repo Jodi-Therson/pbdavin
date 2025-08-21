@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator Americano (Sistem Adil)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white antialiased">
+
+    <div id="app" class="container mx-auto p-4 md:p-8 max-w-5xl">
+        
+        <!-- Layar Pengaturan Awal -->
+        <div id="setup-screen" class="animate-fade-in">
+            <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl">
+                <h1 class="text-3xl md:text-4xl font-bold text-center mb-2 text-cyan-400">PB. Davin MatchUp</h1>
+                <p class="text-center text-gray-400 mb-8">Versi Penjadwalan Adil dengan Validasi Skor.</p>
+
+                <div class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="num-courts" class="block text-sm font-medium text-gray-300 mb-2">Jumlah Lapangan Tersedia</label>
+                            <input type="number" id="num-courts" value="1" min="1" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none transition">
+                        </div>
+                        <div>
+                            <label for="winning-score" class="block text-sm font-medium text-gray-300 mb-2">Skor Kemenangan</label>
+                            <input type="number" id="winning-score" value="21" min="1" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-lg font-semibold mb-3 text-gray-200">Daftar Pemain</h3>
+                        
+                        <!-- Form Jumlah Pemain Awal -->
+                        <div class="mb-4">
+                            <label for="initial-player-count" class="block text-sm font-medium text-gray-300 mb-2">Jumlah Pemain Awal</label>
+                            <input type="number" id="initial-player-count" value="4" min="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none transition">
+                        </div>
+                        
+                        <!-- Tombol Tambah/Hapus Pemain -->
+                        <div class="flex space-x-2 mb-4">
+                            <button id="add-player-btn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-lg transition transform hover:scale-105">Tambah 1 Pemain</button>
+                            <button id="remove-player-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition">Hapus 1 Pemain</button>
+                        </div>
+
+                        <div id="player-list" class="space-y-2">
+                            <!-- Input pemain akan ditambahkan di sini oleh JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8">
+                    <button id="start-tournament-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold text-lg py-3 px-4 rounded-lg transition-transform transform hover:scale-105 shadow-lg">
+                        Mulai Turnamen!
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Layar Turnamen -->
+        <div id="tournament-screen" class="hidden animate-fade-in">
+            <h1 id="round-title" class="text-3xl font-bold text-center mb-6 text-cyan-400"></h1>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Kolom Pertandingan -->
+                <div class="md:col-span-2 space-y-4" id="matches-container">
+                    <!-- Kartu pertandingan akan ditampilkan di sini -->
+                </div>
+
+                <!-- Kolom Papan Peringkat -->
+                <div class="md:col-span-1">
+                    <div class="bg-gray-800 p-4 rounded-2xl shadow-lg sticky top-8">
+                        <h2 class="text-xl font-bold mb-4 text-center text-gray-200">Papan Peringkat</h2>
+                        <table class="w-full text-sm text-left">
+                            <thead class="text-xs text-gray-400 uppercase">
+                                <tr>
+                                    <th scope="col" class="px-2 py-2">#</th>
+                                    <th scope="col" class="px-4 py-2">Pemain</th>
+                                    <th scope="col" class="px-2 py-2 text-center">Main</th>
+                                    <th scope="col" class="px-2 py-2 text-right">Poin</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboard-body">
+                                <!-- Data peringkat akan diisi oleh JS -->
+                            </tbody>
+                        </table>
+                        <div id="players-sitting-out" class="mt-4 text-center">
+                            <!-- Info pemain yang istirahat -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 text-center space-y-4">
+                <button id="next-round-btn" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-8 rounded-lg transition-transform transform hover:scale-105 text-lg shadow-md w-full md:w-auto">
+                    Selesaikan Ronde & Lanjut
+                </button>
+                <button id="add-mid-game-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-lg transition-transform transform hover:scale-105 text-lg shadow-md w-full md:w-auto">
+                    Tambah Pemain di Tengah Pertandingan
+                </button>
+                <button id="new-tournament-btn" class="hidden bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-transform transform hover:scale-105 text-lg shadow-md w-full md:w-auto">
+                    Mulai Turnamen Baru
+                </button>
+            </div>
+        </div>
+
+        <!-- Modal Notifikasi -->
+        <div id="modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+            <div class="bg-gray-800 rounded-lg p-8 max-w-sm w-full text-center shadow-2xl">
+                <p id="modal-message" class="text-lg mb-6"></p>
+                <button id="modal-close-btn" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-6 rounded-lg">Tutup</button>
+            </div>
+        </div>
+        
+        <!-- Modal Tambah Pemain di Tengah Pertandingan -->
+        <div id="add-player-modal" class="hidden fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+            <div class="bg-gray-800 rounded-lg p-8 max-w-md w-full shadow-2xl">
+                <h2 class="text-2xl font-bold text-center mb-6 text-cyan-400">Tambah Pemain Baru</h2>
+                <div id="new-player-list" class="space-y-2 mb-6">
+                    <!-- Input untuk pemain baru -->
+                </div>
+                <div class="flex space-x-2">
+                    <button id="add-new-player-input-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition">Tambah Kolom</button>
+                    <button id="confirm-add-players-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition">Konfirmasi</button>
+                </div>
+                 <button id="cancel-add-players-btn" class="w-full mt-2 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition">Batal</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- ELEMEN DOM ---
+            const setupScreen = document.getElementById('setup-screen');
+            const tournamentScreen = document.getElementById('tournament-screen');
+            const playerList = document.getElementById('player-list');
+            const addPlayerBtn = document.getElementById('add-player-btn');
+            const removePlayerBtn = document.getElementById('remove-player-btn');
+            const startTournamentBtn = document.getElementById('start-tournament-btn');
+            const numCourtsInput = document.getElementById('num-courts');
+            const winningScoreInput = document.getElementById('winning-score');
+            const initialPlayerCountInput = document.getElementById('initial-player-count');
+            const roundTitle = document.getElementById('round-title');
+            const matchesContainer = document.getElementById('matches-container');
+            const leaderboardBody = document.getElementById('leaderboard-body');
+            const nextRoundBtn = document.getElementById('next-round-btn');
+            const newTournamentBtn = document.getElementById('new-tournament-btn');
+            const addMidGameBtn = document.getElementById('add-mid-game-btn');
+            const playersSittingOutDiv = document.getElementById('players-sitting-out');
+            
+            // Modal Umum
+            const modal = document.getElementById('modal');
+            const modalMessage = document.getElementById('modal-message');
+            const modalCloseBtn = document.getElementById('modal-close-btn');
+
+            // Modal Tambah Pemain
+            const addPlayerModal = document.getElementById('add-player-modal');
+            const newPlayerList = document.getElementById('new-player-list');
+            const addNewPlayerInputBtn = document.getElementById('add-new-player-input-btn');
+            const confirmAddPlayersBtn = document.getElementById('confirm-add-players-btn');
+            const cancelAddPlayersBtn = document.getElementById('cancel-add-players-btn');
+
+            // --- STATE APLIKASI ---
+            let players = [];
+            let rounds = [];
+            let currentRoundIndex = 0;
+            let numCourts = 1;
+            let winningScore = 21;
+
+            // --- FUNGSI-FUNGSI ---
+
+            function showModal(message) {
+                modalMessage.textContent = message;
+                modal.classList.remove('hidden');
+            }
+
+            // --- FUNGSI DIPERBAIKI ---
+            function generatePlayerInputs(count, container = playerList) {
+                // 1. Simpan nilai yang sudah ada
+                const existingInputs = container.querySelectorAll('.player-name');
+                const existingValues = Array.from(existingInputs).map(input => input.value);
+
+                container.innerHTML = ''; // Hapus semua input lama
+                
+                // 2. Buat ulang semua input
+                for (let i = 0; i < count; i++) {
+                    const playerDiv = document.createElement('div');
+                    playerDiv.classList.add('flex', 'items-center');
+                    playerDiv.innerHTML = `
+                        <span class="text-gray-400 w-8">${i + 1}.</span>
+                        <input type="text" class="player-name w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none transition" placeholder="Nama Pemain ${i + 1}">
+                    `;
+                    container.appendChild(playerDiv);
+                }
+
+                // 3. Kembalikan nilai yang sudah tersimpan
+                const newInputs = container.querySelectorAll('.player-name');
+                newInputs.forEach((input, index) => {
+                    if (existingValues[index]) {
+                        input.value = existingValues[index];
+                    }
+                });
+            }
+            
+            function initializeSetup() {
+                const initialCount = parseInt(initialPlayerCountInput.value);
+                generatePlayerInputs(initialCount);
+            }
+            initializeSetup();
+
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+
+            function generateRounds(startingRoundIndex = 0, initialSatOut = []) {
+                const numPlayers = players.length;
+                const numRoundsToGenerate = numPlayers - startingRoundIndex;
+                let newRounds = [];
+                let satOutLastRound = initialSatOut;
+
+                for (let i = 0; i < numRoundsToGenerate; i++) {
+                    let priorityPlayers = shuffleArray([...satOutLastRound]);
+                    let otherPlayers = shuffleArray(players.filter(p => !priorityPlayers.some(so => so.name === p.name)));
+                    let roundPlayerPool = [...priorityPlayers, ...otherPlayers];
+                    
+                    let roundMatches = [];
+                    const playersInPlayCount = Math.floor(roundPlayerPool.length / 4) * 4;
+                    const playersForMatches = roundPlayerPool.slice(0, playersInPlayCount);
+                    const sittingOutThisRound = roundPlayerPool.slice(playersInPlayCount);
+
+                    for (let j = 0; j < playersForMatches.length; j += 4) {
+                        const match = {
+                            team1: [playersForMatches[j], playersForMatches[j + 1]],
+                            team2: [playersForMatches[j + 2], playersForMatches[j + 3]],
+                            score1: 0, score2: 0,
+                        };
+                        roundMatches.push(match);
+                    }
+                    newRounds.push({ matches: roundMatches, sittingOut: sittingOutThisRound });
+                    satOutLastRound = sittingOutThisRound;
+                }
+                return newRounds;
+            }
+
+            function renderRound(roundIndex) {
+                const round = rounds[roundIndex];
+                if (!round) return;
+
+                currentRoundIndex = roundIndex;
+                roundTitle.textContent = `Ronde ${roundIndex + 1}`;
+                matchesContainer.innerHTML = '';
+                
+                if (round.matches.length === 0) {
+                    matchesContainer.innerHTML = '<p class="text-center text-gray-400">Tidak ada pertandingan di ronde ini.</p>';
+                }
+
+                round.matches.forEach((match, index) => {
+                    const courtNumber = (index % numCourts) + 1;
+                    const matchCard = document.createElement('div');
+                    matchCard.classList.add('bg-gray-800', 'p-5', 'rounded-2xl', 'shadow-lg');
+                    matchCard.innerHTML = `
+                        <p class="text-sm font-semibold text-cyan-400 mb-3">Lapangan ${courtNumber}</p>
+                        <div class="flex items-center justify-between">
+                            <div class="text-center w-2/5">
+                                <p class="font-semibold text-lg">${match.team1[0].name}</p>
+                                <p class="font-semibold text-lg">&</p>
+                                <p class="font-semibold text-lg">${match.team1[1].name}</p>
+                            </div>
+                            <div class="flex items-center space-x-2 w-1/5 justify-center">
+                                <input type="number" class="score-input w-12 text-center bg-gray-700 rounded-md py-1" data-match-index="${index}" data-team="1" min="0">
+                                <span class="font-bold text-gray-500">-</span>
+                                <input type="number" class="score-input w-12 text-center bg-gray-700 rounded-md py-1" data-match-index="${index}" data-team="2" min="0">
+                            </div>
+                            <div class="text-center w-2/5">
+                                <p class="font-semibold text-lg">${match.team2[0].name}</p>
+                                <p class="font-semibold text-lg">&</p>
+                                <p class="font-semibold text-lg">${match.team2[1].name}</p>
+                            </div>
+                        </div>
+                    `;
+                    matchesContainer.appendChild(matchCard);
+                });
+                
+                if(round.sittingOut.length > 0){
+                    playersSittingOutDiv.innerHTML = `<p class="text-sm text-gray-400 mt-4">Istirahat: ${round.sittingOut.map(p => p.name).join(', ')}</p>`;
+                } else {
+                    playersSittingOutDiv.innerHTML = '';
+                }
+
+                if (currentRoundIndex >= rounds.length - 1) {
+                    nextRoundBtn.textContent = 'Selesaikan Turnamen';
+                    nextRoundBtn.classList.remove('bg-cyan-600', 'hover:bg-cyan-700');
+                    nextRoundBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+                    addMidGameBtn.style.display = 'none';
+                } else {
+                     nextRoundBtn.textContent = 'Selesaikan Ronde & Lanjut';
+                     nextRoundBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                     nextRoundBtn.classList.add('bg-cyan-600', 'hover:bg-cyan-700');
+                     addMidGameBtn.style.display = 'block';
+                }
+            }
+
+            function updateLeaderboard() {
+                leaderboardBody.innerHTML = '';
+                const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+                sortedPlayers.forEach((player, index) => {
+                    const row = document.createElement('tr');
+                    row.classList.add('border-b', 'border-gray-700');
+                    row.innerHTML = `
+                        <td class="px-2 py-3 font-medium">${index + 1}</td>
+                        <td class="px-4 py-3">${player.name}</td>
+                        <td class="px-2 py-3 text-center">${player.gamesPlayed}</td>
+                        <td class="px-2 py-3 font-bold text-right">${player.score}</td>
+                    `;
+                    leaderboardBody.appendChild(row);
+                });
+            }
+
+            function isValidScore(s1, s2, winScore) {
+                if (isNaN(s1) || isNaN(s2) || s1 < 0 || s2 < 0) return { valid: false, message: "Skor harus angka positif." };
+
+                const max = Math.max(s1, s2);
+                const min = Math.min(s1, s2);
+
+                if (max === winScore && min <= winScore - 2) return { valid: true };
+                if (max > winScore && max < 30 && max - min === 2) return { valid: true };
+                if (max === 30 && min === 29) return { valid: true };
+                
+                if (max < winScore) return { valid: false, message: `Salah satu skor harus mencapai ${winScore} untuk menang.` };
+                if (max === winScore && min === winScore -1) return { valid: false, message: `Skor ${winScore}-${min} membutuhkan jus (selisih 2 poin).` };
+                if (max > winScore && max - min !== 2) return { valid: false, message: `Skor di atas ${winScore-1} membutuhkan selisih 2 poin.`};
+                if (max > 30) return { valid: false, message: `Skor tidak boleh melebihi 30.`};
+
+                return { valid: false, message: "Skor tidak valid sesuai aturan bulutangkis." };
+            }
+            
+            function processNextRound() {
+                const scoreInputs = document.querySelectorAll('.score-input');
+                let allScoresValid = true;
+                let validationError = "";
+
+                scoreInputs.forEach(input => input.classList.remove('border', 'border-red-500'));
+                
+                const matchesData = rounds[currentRoundIndex].matches;
+                for (let i = 0; i < matchesData.length; i++) {
+                    const score1Input = document.querySelector(`.score-input[data-match-index="${i}"][data-team="1"]`);
+                    const score2Input = document.querySelector(`.score-input[data-match-index="${i}"][data-team="2"]`);
+                    
+                    const score1 = parseInt(score1Input.value, 10);
+                    const score2 = parseInt(score2Input.value, 10);
+                    
+                    const validation = isValidScore(score1, score2, winningScore);
+                    if (!validation.valid) {
+                        allScoresValid = false;
+                        validationError = `Pertandingan ${i + 1}: ${validation.message}`;
+                        score1Input.classList.add('border', 'border-red-500');
+                        score2Input.classList.add('border', 'border-red-500');
+                        break; 
+                    } else {
+                        matchesData[i].score1 = score1;
+                        matchesData[i].score2 = score2;
+                    }
+                }
+
+                if (!allScoresValid) {
+                    showModal(validationError || 'Harap isi semua skor dengan angka yang valid.');
+                    return;
+                }
+
+                rounds[currentRoundIndex].matches.forEach(match => {
+                    match.team1.forEach(player => {
+                        player.score += match.score1;
+                        player.gamesPlayed += 1;
+                    });
+                    match.team2.forEach(player => {
+                        player.score += match.score2;
+                        player.gamesPlayed += 1;
+                    });
+                });
+
+                updateLeaderboard();
+
+                if (currentRoundIndex >= rounds.length - 1) {
+                    const winner = players.sort((a, b) => b.score - a.score)[0];
+                    roundTitle.textContent = 'Turnamen Selesai!';
+                    matchesContainer.innerHTML = `
+                        <div class="bg-gray-800 p-8 rounded-2xl text-center">
+                            <h2 class="text-2xl font-bold text-yellow-400">Pemenang: ${winner.name}!</h2>
+                            <p class="text-gray-300 mt-2">Dengan total ${winner.score} poin.</p>
+                        </div>
+                    `;
+                    nextRoundBtn.style.display = 'none';
+                    addMidGameBtn.style.display = 'none';
+                    newTournamentBtn.classList.remove('hidden');
+                    playersSittingOutDiv.innerHTML = '';
+                } else {
+                    renderRound(currentRoundIndex + 1);
+                }
+            }
+
+            function resetTournament() {
+                players = [];
+                rounds = [];
+                currentRoundIndex = 0;
+                tournamentScreen.classList.add('hidden');
+                setupScreen.classList.remove('hidden');
+                initializeSetup();
+                nextRoundBtn.style.display = 'block';
+                addMidGameBtn.style.display = 'block';
+                newTournamentBtn.classList.add('hidden');
+            }
+
+            // --- EVENT LISTENERS ---
+            initialPlayerCountInput.addEventListener('change', () => {
+                let count = parseInt(initialPlayerCountInput.value);
+                if (count < 4) {
+                    count = 4;
+                    initialPlayerCountInput.value = 4;
+                    showModal('Jumlah pemain minimal adalah 4.');
+                }
+                generatePlayerInputs(count);
+            });
+
+            addPlayerBtn.addEventListener('click', () => {
+                const currentCount = playerList.children.length;
+                initialPlayerCountInput.value = currentCount + 1;
+                generatePlayerInputs(currentCount + 1);
+            });
+
+            removePlayerBtn.addEventListener('click', () => {
+                const currentCount = playerList.children.length;
+                if (currentCount > 4) {
+                    initialPlayerCountInput.value = currentCount - 1;
+                    generatePlayerInputs(currentCount - 1);
+                } else {
+                    showModal('Jumlah pemain minimal adalah 4 orang.');
+                }
+            });
+
+            startTournamentBtn.addEventListener('click', () => {
+                const playerInputs = document.querySelectorAll('#player-list .player-name');
+                players = [];
+                let allNamesValid = true;
+                playerInputs.forEach(input => {
+                    const name = input.value.trim();
+                    if (name === '') { allNamesValid = false; }
+                    players.push({ name: name, score: 0, gamesPlayed: 0 });
+                });
+
+                if (!allNamesValid) {
+                    showModal('Semua nama pemain harus diisi.');
+                    return;
+                }
+                
+                if (players.length < 4) {
+                    showModal('Jumlah pemain minimal adalah 4 orang.');
+                    return;
+                }
+                
+                numCourts = parseInt(numCourtsInput.value) || 1;
+                winningScore = parseInt(winningScoreInput.value) || 21;
+
+                rounds = generateRounds();
+                setupScreen.classList.add('hidden');
+                tournamentScreen.classList.remove('hidden');
+                renderRound(0);
+                updateLeaderboard();
+            });
+
+            nextRoundBtn.addEventListener('click', processNextRound);
+            newTournamentBtn.addEventListener('click', resetTournament);
+            modalCloseBtn.addEventListener('click', () => modal.classList.add('hidden'));
+
+            // Event Listeners untuk Modal Tambah Pemain
+            addMidGameBtn.addEventListener('click', () => {
+                newPlayerList.innerHTML = '';
+                generatePlayerInputs(1, newPlayerList);
+                addPlayerModal.classList.remove('hidden');
+            });
+            
+            addNewPlayerInputBtn.addEventListener('click', () => {
+                 const currentCount = newPlayerList.children.length;
+                 generatePlayerInputs(currentCount + 1, newPlayerList);
+            });
+
+            cancelAddPlayersBtn.addEventListener('click', () => {
+                addPlayerModal.classList.add('hidden');
+            });
+
+            confirmAddPlayersBtn.addEventListener('click', () => {
+                const newPlayerInputs = document.querySelectorAll('#new-player-list .player-name');
+                const newNames = [];
+                let allNewNamesValid = true;
+
+                newPlayerInputs.forEach(input => {
+                    const name = input.value.trim();
+                    if (name === '') { allNewNamesValid = false; }
+                    if (players.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+                        showModal(`Pemain dengan nama "${name}" sudah ada.`);
+                        allNewNamesValid = false;
+                    }
+                    newNames.push(name);
+                });
+
+                if (!allNewNamesValid) {
+                    showModal('Semua nama pemain baru harus diisi dan tidak boleh sama dengan pemain yang sudah ada.');
+                    return;
+                }
+
+                newNames.forEach(name => {
+                    players.push({ name: name, score: 0, gamesPlayed: 0 });
+                });
+
+                const completedRounds = rounds.slice(0, currentRoundIndex);
+                const lastSatOut = completedRounds.length > 0 ? completedRounds[completedRounds.length - 1].sittingOut : [];
+                const remainingRounds = generateRounds(currentRoundIndex, lastSatOut);
+                rounds = [...completedRounds, ...remainingRounds];
+
+                updateLeaderboard();
+                addPlayerModal.classList.add('hidden');
+                showModal(`${newNames.length} pemain baru telah ditambahkan. Jadwal telah diperbarui dari ronde saat ini.`);
+                renderRound(currentRoundIndex);
+            });
+        });
+    </script>
+
+</body>
+</html>
