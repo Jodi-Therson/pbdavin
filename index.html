@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PB Davin</title>
+    <title>Badminton Match Finder</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -27,7 +27,7 @@
         <div id="setup-screen" class="animate-fade-in">
             <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl">
                 <h1 class="text-3xl md:text-4xl font-bold text-center mb-2 text-cyan-400">PB. Davin MatchUp</h1>
-                <p class="text-center text-gray-400 mb-8">Versi Penjadwalan Adil dengan Validasi Skor.</p>
+                <p class="text-center text-gray-400 mb-8">Versi Penjadwalan Adil.</p>
 
                 <div class="space-y-6">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -44,13 +44,11 @@
                     <div>
                         <h3 class="text-lg font-semibold mb-3 text-gray-200">Daftar Pemain</h3>
                         
-                        <!-- Form Jumlah Pemain Awal -->
                         <div class="mb-4">
                             <label for="initial-player-count" class="block text-sm font-medium text-gray-300 mb-2">Jumlah Pemain Awal</label>
                             <input type="number" id="initial-player-count" value="4" min="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-2 text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none transition">
                         </div>
                         
-                        <!-- Tombol Tambah/Hapus Pemain -->
                         <div class="flex space-x-2 mb-4">
                             <button id="add-player-btn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-2 px-4 rounded-lg transition transform hover:scale-105">Tambah 1 Pemain</button>
                             <button id="remove-player-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition">Hapus 1 Pemain</button>
@@ -111,6 +109,17 @@
                 <button id="add-mid-game-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-lg transition-transform transform hover:scale-105 text-lg shadow-md w-full md:w-auto">
                     Tambah Pemain di Tengah Pertandingan
                 </button>
+                
+                <div id="download-section" class="hidden flex-col items-center justify-center space-y-3">
+                    <div class="flex items-center space-x-2">
+                         <input type="checkbox" id="transparent-bg-checkbox" class="w-4 h-4 text-cyan-600 bg-gray-700 border-gray-600 rounded focus:ring-cyan-500">
+                         <label for="transparent-bg-checkbox" class="text-sm font-medium text-gray-300">Latar Belakang Transparan</label>
+                    </div>
+                    <button id="download-results-btn" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg transition-transform transform hover:scale-105 text-lg shadow-md w-full md:w-auto">
+                        Unduh Hasil Pertandingan
+                    </button>
+                </div>
+
                 <button id="new-tournament-btn" class="hidden bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg transition-transform transform hover:scale-105 text-lg shadow-md w-full md:w-auto">
                     Mulai Turnamen Baru
                 </button>
@@ -139,7 +148,9 @@
                  <button id="cancel-add-players-btn" class="w-full mt-2 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition">Batal</button>
             </div>
         </div>
-
+        
+        <!-- Canvas tersembunyi untuk membuat gambar hasil -->
+        <canvas id="result-canvas" class="hidden"></canvas>
     </div>
 
     <script>
@@ -160,6 +171,9 @@
             const nextRoundBtn = document.getElementById('next-round-btn');
             const newTournamentBtn = document.getElementById('new-tournament-btn');
             const addMidGameBtn = document.getElementById('add-mid-game-btn');
+            const downloadSection = document.getElementById('download-section');
+            const downloadResultsBtn = document.getElementById('download-results-btn');
+            const transparentBgCheckbox = document.getElementById('transparent-bg-checkbox');
             const playersSittingOutDiv = document.getElementById('players-sitting-out');
             
             // Modal Umum
@@ -180,6 +194,7 @@
             let currentRoundIndex = 0;
             let numCourts = 1;
             let winningScore = 21;
+            let tournamentStartTime;
 
             // --- FUNGSI-FUNGSI ---
 
@@ -188,15 +203,12 @@
                 modal.classList.remove('hidden');
             }
 
-            // --- FUNGSI DIPERBAIKI ---
             function generatePlayerInputs(count, container = playerList) {
-                // 1. Simpan nilai yang sudah ada
                 const existingInputs = container.querySelectorAll('.player-name');
                 const existingValues = Array.from(existingInputs).map(input => input.value);
 
-                container.innerHTML = ''; // Hapus semua input lama
+                container.innerHTML = '';
                 
-                // 2. Buat ulang semua input
                 for (let i = 0; i < count; i++) {
                     const playerDiv = document.createElement('div');
                     playerDiv.classList.add('flex', 'items-center');
@@ -207,7 +219,6 @@
                     container.appendChild(playerDiv);
                 }
 
-                // 3. Kembalikan nilai yang sudah tersimpan
                 const newInputs = container.querySelectorAll('.player-name');
                 newInputs.forEach((input, index) => {
                     if (existingValues[index]) {
@@ -409,6 +420,8 @@
                     `;
                     nextRoundBtn.style.display = 'none';
                     addMidGameBtn.style.display = 'none';
+                    downloadSection.classList.remove('hidden');
+                    downloadSection.classList.add('flex');
                     newTournamentBtn.classList.remove('hidden');
                     playersSittingOutDiv.innerHTML = '';
                 } else {
@@ -420,13 +433,111 @@
                 players = [];
                 rounds = [];
                 currentRoundIndex = 0;
+                tournamentStartTime = null;
                 tournamentScreen.classList.add('hidden');
                 setupScreen.classList.remove('hidden');
                 initializeSetup();
                 nextRoundBtn.style.display = 'block';
                 addMidGameBtn.style.display = 'block';
                 newTournamentBtn.classList.add('hidden');
+                downloadSection.classList.add('hidden');
+                downloadSection.classList.remove('flex');
             }
+            
+            function formatDuration(ms) {
+                if (!ms || ms < 0) return "00:00:00";
+                const totalSeconds = Math.floor(ms / 1000);
+                const hours = Math.floor(totalSeconds / 3600).toString().padStart(2, '0');
+                const minutes = Math.floor((totalSeconds % 3600) / 60).toString().padStart(2, '0');
+                const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+                return `${hours}:${minutes}:${seconds}`;
+            }
+
+            function generateResultImage() {
+                const canvas = document.getElementById('result-canvas');
+                const ctx = canvas.getContext('2d');
+                const isTransparent = transparentBgCheckbox.checked;
+                
+                canvas.width = 1080;
+                canvas.height = 1080;
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                if (!isTransparent) {
+                    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+                    gradient.addColorStop(0, '#1F2937');
+                    gradient.addColorStop(1, '#111827');
+                    ctx.fillStyle = gradient;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+
+                if (isTransparent) {
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+                    ctx.shadowBlur = 10;
+                    ctx.shadowOffsetX = 5;
+                    ctx.shadowOffsetY = 5;
+                }
+
+                ctx.fillStyle = '#22D3EE';
+                ctx.font = 'bold 80px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText('PB. Davin MatchUp', canvas.width / 2, 150);
+
+                ctx.fillStyle = '#9CA3AF';
+                ctx.font = '40px Inter';
+                ctx.fillText('Hasil Pertandingan', canvas.width / 2, 220);
+
+                const today = new Date();
+                const dateString = today.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                ctx.fillStyle = 'white';
+                ctx.font = '30px Inter';
+                ctx.fillText(dateString, canvas.width / 2, 280);
+
+                const duration = new Date() - tournamentStartTime;
+                const totalMatches = rounds.reduce((acc, round) => acc + round.matches.length, 0);
+
+                ctx.font = 'bold 40px Inter';
+                ctx.textAlign = 'left';
+                ctx.fillText('Durasi', 150, 400);
+                ctx.fillText('Total Pertandingan', 550, 400);
+
+                ctx.font = '60px Inter';
+                ctx.fillStyle = '#22D3EE';
+                ctx.fillText(formatDuration(duration), 150, 470);
+                ctx.fillText(totalMatches, 550, 470);
+
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 45px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText('🏆 Peringkat Teratas 🏆', canvas.width / 2, 600);
+
+                const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+                const top3 = sortedPlayers.slice(0, 3);
+                const emojis = ['🥇', '🥈', '🥉'];
+                
+                top3.forEach((player, index) => {
+                    const yPos = 720 + (index * 100);
+                    ctx.font = '50px Inter';
+                    ctx.textAlign = 'left';
+                    ctx.fillText(`${emojis[index]} ${player.name}`, 150, yPos);
+                    
+                    ctx.font = 'bold 50px Inter';
+                    ctx.textAlign = 'right';
+                    ctx.fillText(`${player.score} Poin`, canvas.width - 150, yPos);
+                });
+                
+                // Reset bayangan setelah selesai agar tidak mempengaruhi elemen lain
+                ctx.shadowColor = 'transparent';
+                ctx.shadowBlur = 0;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+
+                const link = document.createElement('a');
+                link.download = `hasil-pertandingan-${today.getTime()}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }
+
 
             // --- EVENT LISTENERS ---
             initialPlayerCountInput.addEventListener('change', () => {
@@ -477,6 +588,7 @@
                 
                 numCourts = parseInt(numCourtsInput.value) || 1;
                 winningScore = parseInt(winningScoreInput.value) || 21;
+                tournamentStartTime = new Date();
 
                 rounds = generateRounds();
                 setupScreen.classList.add('hidden');
@@ -487,9 +599,9 @@
 
             nextRoundBtn.addEventListener('click', processNextRound);
             newTournamentBtn.addEventListener('click', resetTournament);
+            downloadResultsBtn.addEventListener('click', generateResultImage);
             modalCloseBtn.addEventListener('click', () => modal.classList.add('hidden'));
 
-            // Event Listeners untuk Modal Tambah Pemain
             addMidGameBtn.addEventListener('click', () => {
                 newPlayerList.innerHTML = '';
                 generatePlayerInputs(1, newPlayerList);
@@ -544,4 +656,3 @@
 
 </body>
 </html>
-
