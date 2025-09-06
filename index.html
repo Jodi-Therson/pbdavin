@@ -195,6 +195,7 @@
             let numCourts = 1;
             let winningScore = 21;
             let tournamentStartTime;
+            let scheduleNeedsUpdate = false; // <-- Variabel state baru
 
             // --- FUNGSI-FUNGSI ---
 
@@ -409,6 +410,17 @@
 
                 updateLeaderboard();
 
+                // --- LOGIKA BARU ---
+                // Cek apakah jadwal perlu diperbarui sebelum lanjut
+                if (scheduleNeedsUpdate) {
+                    const completedRounds = rounds.slice(0, currentRoundIndex + 1);
+                    const lastSatOut = completedRounds[completedRounds.length - 1].sittingOut;
+                    const remainingRounds = generateRounds(currentRoundIndex + 1, lastSatOut);
+                    rounds = [...completedRounds, ...remainingRounds];
+                    scheduleNeedsUpdate = false; // Reset flag
+                }
+                // --- AKHIR LOGIKA BARU ---
+
                 if (currentRoundIndex >= rounds.length - 1) {
                     const winner = players.sort((a, b) => b.score - a.score)[0];
                     roundTitle.textContent = 'Turnamen Selesai!';
@@ -434,6 +446,7 @@
                 rounds = [];
                 currentRoundIndex = 0;
                 tournamentStartTime = null;
+                scheduleNeedsUpdate = false;
                 tournamentScreen.classList.add('hidden');
                 setupScreen.classList.remove('hidden');
                 initializeSetup();
@@ -460,7 +473,7 @@
                 
                 canvas.width = 1080;
                 canvas.height = 1080;
-
+                
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
                 if (!isTransparent) {
@@ -526,7 +539,6 @@
                     ctx.fillText(`${player.score} Poin`, canvas.width - 150, yPos);
                 });
                 
-                // Reset bayangan setelah selesai agar tidak mempengaruhi elemen lain
                 ctx.shadowColor = 'transparent';
                 ctx.shadowBlur = 0;
                 ctx.shadowOffsetX = 0;
@@ -617,6 +629,7 @@
                 addPlayerModal.classList.add('hidden');
             });
 
+            // --- LOGIKA DIPERBAIKI ---
             confirmAddPlayersBtn.addEventListener('click', () => {
                 const newPlayerInputs = document.querySelectorAll('#new-player-list .player-name');
                 const newNames = [];
@@ -633,7 +646,10 @@
                 });
 
                 if (!allNewNamesValid) {
-                    showModal('Semua nama pemain baru harus diisi dan tidak boleh sama dengan pemain yang sudah ada.');
+                    // Cek jika modal masih terbuka, jangan tampilkan modal baru
+                    if (addPlayerModal.classList.contains('hidden')) {
+                         showModal('Semua nama pemain baru harus diisi dan tidak boleh sama dengan pemain yang sudah ada.');
+                    }
                     return;
                 }
 
@@ -641,18 +657,16 @@
                     players.push({ name: name, score: 0, gamesPlayed: 0 });
                 });
 
-                const completedRounds = rounds.slice(0, currentRoundIndex);
-                const lastSatOut = completedRounds.length > 0 ? completedRounds[completedRounds.length - 1].sittingOut : [];
-                const remainingRounds = generateRounds(currentRoundIndex, lastSatOut);
-                rounds = [...completedRounds, ...remainingRounds];
+                scheduleNeedsUpdate = true; // Tandai bahwa jadwal perlu diperbarui
 
                 updateLeaderboard();
                 addPlayerModal.classList.add('hidden');
-                showModal(`${newNames.length} pemain baru telah ditambahkan. Jadwal telah diperbarui dari ronde saat ini.`);
-                renderRound(currentRoundIndex);
+                showModal(`${newNames.length} pemain baru telah ditambahkan. Mereka akan bergabung di ronde berikutnya.`);
+                // Tidak ada renderRound() di sini agar tidak me-refresh layar
             });
         });
     </script>
 
 </body>
 </html>
+
